@@ -1,0 +1,47 @@
+name: Build HAT FPV APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project ZIP
+        run: |
+          mkdir extracted
+          unzip -q HAT-Universal-FPV-Phone-Only-Build.zip -d extracted
+
+      - name: Find Android project
+        run: |
+          find extracted -name settings.gradle -o -name settings.gradle.kts
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Make Gradle executable
+        run: |
+          GRADLEW=$(find extracted -name gradlew -type f | head -1)
+          chmod +x "$GRADLEW"
+
+      - name: Build APK
+        run: |
+          PROJECT=$(dirname "$(find extracted -name gradlew -type f | head -1)")
+          cd "$PROJECT"
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HAT-FPV-APK
+          path: extracted/**/build/outputs/apk/**/*.apk
